@@ -13,5 +13,7 @@ struct TempConverterApp: App {
         WindowGroup {
             ContentView()
         }
+        .defaultSize(width: 460, height: 90)
+        .windowResizability(.contentSize)
     }
 }
