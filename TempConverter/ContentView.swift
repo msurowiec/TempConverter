@@ -9,10 +9,11 @@ import SwiftUI
 
 struct ContentView: View {
     @State private var inputText = ""
-    @State private var isFtoC = true
+    @AppStorage("isFtoC") private var isFtoC = true
     @FocusState private var isInputFocused: Bool
     @State private var weather = WeatherService()
     @State private var weatherError: String?
+    @State private var isHovering = false
 
     private var fromUnit: String { isFtoC ? "°F" : "°C" }
     private var toUnit: String   { isFtoC ? "°C" : "°F" }
@@ -69,21 +70,34 @@ struct ContentView: View {
                 .help(weatherError ?? "Fill with current local temperature")
 
                 // Input side
-                HStack(alignment: .firstTextBaseline, spacing: 5) {
-                    TextField("", text: $inputText)
-                        .font(.system(size: 36, weight: .thin, design: .rounded))
-                        .foregroundStyle(.white)
-                        .textFieldStyle(.plain)
-                        .multilineTextAlignment(.trailing)
-                        .focused($isInputFocused)
-                        .onChange(of: inputText) { _, newValue in
-                            inputText = newValue.filter { $0.isNumber || $0 == "." || $0 == "-" }
+                HStack(alignment: .firstTextBaseline, spacing: 6) {
+                    ZStack(alignment: .trailing) {
+                        if inputText.isEmpty {
+                            Text("0")
+                                .font(.system(size: 36, weight: .thin, design: .rounded))
+                                .foregroundStyle(.white.opacity(0.25))
+                                .allowsHitTesting(false)
                         }
+                        TextField("", text: $inputText)
+                            .font(.system(size: 36, weight: .thin, design: .rounded))
+                            .foregroundStyle(.white)
+                            .textFieldStyle(.plain)
+                            .multilineTextAlignment(.trailing)
+                            .focused($isInputFocused)
+                            .onChange(of: inputText) { _, newValue in
+                                inputText = newValue.filter { $0.isNumber || $0 == "." || $0 == "-" }
+                            }
+                    }
+                    .padding(.bottom, 4)
+                    .overlay(alignment: .bottom) {
+                        Rectangle()
+                            .fill(.white.opacity(isInputFocused ? 0.4 : 0.15))
+                            .frame(height: 1)
+                    }
 
                     Text(fromUnit)
-                        .font(.system(size: 16, weight: .light, design: .rounded))
-                        .foregroundStyle(.white.opacity(0.5))
-                        .padding(.bottom, 2)
+                        .font(.system(size: 20, weight: .regular, design: .rounded))
+                        .foregroundStyle(.white.opacity(0.7))
                 }
                 .frame(maxWidth: .infinity)
                 .padding(.leading, 20)
@@ -105,30 +119,60 @@ struct ContentView: View {
                 .padding(.horizontal, 12)
 
                 // Result side
-                HStack(alignment: .firstTextBaseline, spacing: 5) {
+                HStack(alignment: .firstTextBaseline, spacing: 6) {
                     Text(resultString)
                         .font(.system(size: 36, weight: .bold, design: .rounded))
                         .foregroundStyle(result != nil
                             ? LinearGradient(colors: [Color(red: 0.4, green: 0.8, blue: 1.0),
                                                       Color(red: 0.3, green: 0.6, blue: 0.9)],
                                              startPoint: .leading, endPoint: .trailing)
-                            : LinearGradient(colors: [.white.opacity(0.2), .white.opacity(0.2)],
+                            : LinearGradient(colors: [.white.opacity(0.35), .white.opacity(0.35)],
                                              startPoint: .leading, endPoint: .trailing))
                         .contentTransition(.numericText())
                         .animation(.easeInOut(duration: 0.2), value: resultString)
                         .frame(maxWidth: .infinity, alignment: .trailing)
 
                     Text(toUnit)
-                        .font(.system(size: 16, weight: .light, design: .rounded))
-                        .foregroundStyle(.white.opacity(0.5))
+                        .font(.system(size: 20, weight: .regular, design: .rounded))
+                        .foregroundStyle(.white.opacity(0.7))
                         .padding(.bottom, 2)
                 }
                 .frame(maxWidth: .infinity)
                 .padding(.trailing, 20)
             }
         }
+        .clipShape(RoundedRectangle(cornerRadius: 16))
+        .overlay(alignment: .topLeading) {
+            if isHovering {
+                Button {
+                    NSApplication.shared.terminate(nil)
+                } label: {
+                    ZStack {
+                        Circle()
+                            .fill(.white.opacity(0.15))
+                            .frame(width: 22, height: 22)
+                        Image(systemName: "xmark")
+                            .font(.system(size: 9, weight: .bold))
+                            .foregroundStyle(.white.opacity(0.8))
+                    }
+                }
+                .buttonStyle(.plain)
+                .padding(2)
+                .transition(.opacity.animation(.easeInOut(duration: 0.15)))
+            }
+        }
+        .onHover { isHovering = $0 }
         .frame(width: 460, height: 90)
-        .onAppear { isInputFocused = true }
+        .onAppear {
+            isInputFocused = true
+            if let window = NSApplication.shared.windows.first {
+                window.styleMask.remove(.titled)
+                window.isMovableByWindowBackground = true
+                window.hasShadow = true
+                window.backgroundColor = .clear
+                window.isOpaque = false
+            }
+        }
     }
 }
 
