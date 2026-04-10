@@ -1,4 +1,4 @@
-# Thermo
+# TempConverter
 
 A sleek, compact macOS temperature converter widget.
 
